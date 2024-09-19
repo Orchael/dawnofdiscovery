@@ -1,9 +1,9 @@
 <?php
 $db_config = [
-    'host' => 'sql103.iceiy.com',
-    'username' => 'icei_37344178',
-    'password' => 'bso67dhBqFuX',
-    'database' => 'icei_37344178_ascendancy'
+    'host' => '',
+    'username' => '',
+    'password' => '',
+    'database' => ''
 ];
 
 function get_db_connection() {
