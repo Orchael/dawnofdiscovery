@@ -1,0 +1,82 @@
+body {
+    font-family: 'Orbitron', sans-serif;
+    background-color: #000;
+    color: #0ff;
+    margin: 0;
+    padding: 0;
+    background-image: url('../images/space-background.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+
+#game-container, #login-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+#login-container {
+    justify-content: center;
+    align-items: center;
+}
+
+#status-bar {
+    height: 50px;
+    background-color: rgba(0, 26, 26, 0.8);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+}
+
+#main-display {
+    flex-grow: 1;
+    display: flex;
+    justify-content: space-around;
+    padding: 20px;
+}
+
+#system-info, #player-info {
+    background-color: rgba(0, 26, 26, 0.8);
+    padding: 20px;
+    border-radius: 10px;
+    width: 45%;
+}
+
+#action-menu {
+    height: 100px;
+    background-color: rgba(0, 26, 26, 0.8);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+
+input, button {
+    font-family: 'Orbitron', sans-serif;
+    padding: 10px;
+    margin: 5px;
+    background-color: rgba(0, 26, 26, 0.8);
+    color: #0ff;
+    border: 1px solid #0ff;
+}
+
+button {
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: rgba(0, 77, 77, 0.8);
+}
+
+h1, h2 {
+    color: #0ff;
+    text-align: center;
+}
+
+.error {
+    color: #ff4444;
+    text-align: center;
+}
