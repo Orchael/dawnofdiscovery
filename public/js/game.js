@@ -1,86 +1,102 @@
-let playerState = {};
+$(document).ready(function() {
+    let currentSystem = null;
 
-function updateGameState() {
-    fetch('api.php?action=get_game_state')
-        .then(response => response.json())
-        .then(data => {
-            playerState = data;
-            updateDisplay();
+    function updateSystemInfo(systemInfo) {
+        $('#system-info').html(`
+            <h2>${systemInfo.name}</h2>
+            <p>Type: ${systemInfo.type}</p>
+            <p>Economy: ${systemInfo.economyType}</p>
+            <p>Security: ${systemInfo.securityLevel}</p>
+        `);
+
+        $('#planets').empty();
+        systemInfo.planets.forEach(planet => {
+            $('#planets').append(`
+                <div class="planet">
+                    <h3>${planet.name}</h3>
+                    <p>Type: ${planet.type}</p>
+                    <p>Size: ${planet.size}</p>
+                    <p>Orbit: ${planet.orbit}</p>
+                    <p>Habitable: ${planet.habitable ? 'Yes' : 'No'}</p>
+                </div>
+            `);
         });
-}
+    }
 
-function updateDisplay() {
-    document.getElementById('status-bar').innerHTML = `
-        <span>Credits: ${playerState.credits}</span>
-        <span>System: ${playerState.current_system}</span>
-        <span>Ship: ${playerState.ship}</span>
-    `;
+    function updateMarketPrices(prices) {
+        $('#market').empty();
+        prices.forEach(item => {
+            $('#market').append(`
+                <div class="market-item">
+                    <span>${item.name}</span>
+                    <span>${item.price} credits</span>
+                    <button onclick="buy(${item.id})">Buy</button>
+                    <button onclick="sell(${item.id})">Sell</button>
+                </div>
+            `);
+        });
+    }
 
-    document.getElementById('system-info').innerHTML = `
-        <h2>Current System: ${playerState.name}</h2>
-        <p>Economy: ${playerState.economy_type}</p>
-        <p>Security: ${playerState.security_level}</p>
-        <p>Coordinates: (${playerState.x_coord}, ${playerState.y_coord}, ${playerState.z_coord})</p>
-    `;
-
-    document.getElementById('player-info').innerHTML = `
-        <h2>Player Info</h2>
-        <p>Ship: ${playerState.ship}</p>
-        <p>Credits: ${playerState.credits}</p>
-    `;
-
-    document.getElementById('action-menu').innerHTML = `
-        <button onclick="travel()">Travel</button>
-        <button onclick="trade()">Trade</button>
-        <button onclick="explore()">Explore</button>
-    `;
-}
-
-function travel() {
-    const destination = prompt("Enter destination system name:");
-    if (destination) {
-        fetch('api.php?action=travel', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `destination=${encodeURIComponent(destination)}`
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                alert(data.error);
+    function scanSystem() {
+        $.post('api.php', {action: 'scanSystem'}, function(response) {
+            if (response.success) {
+                currentSystem = response.systemInfo;
+                updateSystemInfo(currentSystem);
             } else {
-                alert(data.message);
-                updateGameState();
+                alert(response.message);
             }
         });
     }
-}
 
-function trade() {
-    fetch('api.php?action=trade')
-        .then(response => response.json())
-        .then(data => {
-            alert(`${data.message}. Profit: ${data.profit} credits`);
-            updateGameState();
-        });
-}
-
-function explore() {
-    fetch('api.php?action=explore')
-        .then(response => response.json())
-        .then(data => {
-            alert(data.message);
-            if (data.credits_reward) {
-                alert(`You earned ${data.credits_reward} credits!`);
+    function travel() {
+        const targetSystemId = $('#target-system').val();
+        $.post('api.php', {action: 'travel', targetSystemId: targetSystemId}, function(response) {
+            if (response.success) {
+                currentSystem = response.newSystem;
+                updateSystemInfo(currentSystem);
+                alert(response.message);
+            } else {
+                alert(response.message);
             }
-            updateGameState();
         });
-}
+    }
 
-// Poll for updates every 5 seconds
-setInterval(updateGameState, 5000);
+    function getMarketPrices() {
+        $.post('api.php', {action: 'getMarketPrices'}, function(response) {
+            if (response.success) {
+                updateMarketPrices(response.prices);
+            } else {
+                alert(response.message);
+            }
+        });
+    }
 
-// Initial game state update
-updateGameState();
+    function buy(commodityId) {
+        const quantity = prompt("How many units do you want to buy?");
+        $.post('api.php', {action: 'trade', commodityId: commodityId, quantity: quantity, isBuying: true}, function(response) {
+            alert(response.message);
+            if (response.success) {
+                getMarketPrices();
+            }
+        });
+    }
+
+    function sell(commodityId) {
+        const quantity = prompt("How many units do you want to sell?");
+        $.post('api.php', {action: 'trade', commodityId: commodityId, quantity: quantity, isBuying: false}, function(response) {
+            alert(response.message);
+            if (response.success) {
+                getMarketPrices();
+            }
+        });
+    }
+
+    // Initial setup
+    scanSystem();
+    getMarketPrices();
+
+    // Bind events
+    $('#scan-system').click(scanSystem);
+    $('#travel').click(travel);
+    $('#refresh-market').click(getMarketPrices);
+});

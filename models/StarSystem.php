@@ -1,28 +1,82 @@
 <?php
 class StarSystem {
-    public static function getById($conn, $id) {
-        $stmt = $conn->prepare("SELECT * FROM star_systems WHERE id = ?");
-        $stmt->bind_param("i", $id);
-        $stmt->execute();
-        return $stmt->get_result()->fetch_assoc();
+    private $conn;
+    public $id;
+    public $name;
+    public $x;
+    public $y;
+    public $z;
+    public $type;
+    public $size;
+    public $temperature;
+    public $economyType;
+    public $securityLevel;
+    public $population;
+
+    public function __construct($conn, $id) {
+        $this->conn = $conn;
+        $this->id = $id;
+        $this->loadData();
     }
 
-    public static function getByName($conn, $name) {
-        $stmt = $conn->prepare("SELECT * FROM star_systems WHERE name = ?");
-        $stmt->bind_param("s", $name);
+    private function loadData() {
+        $sql = "SELECT * FROM star_systems WHERE id = ?";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param("i", $this->id);
         $stmt->execute();
-        return $stmt->get_result()->fetch_assoc();
+        $result = $stmt->get_result();
+        $data = $result->fetch_assoc();
+        
+        foreach ($data as $key => $value) {
+            $this->$key = $value;
+        }
     }
 
-    public static function create($conn, $data) {
-        $stmt = $conn->prepare("INSERT INTO star_systems (name, x_coord, y_coord, z_coord, economy_type, security_level) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("siiiss", $data['name'], $data['x_coord'], $data['y_coord'], $data['z_coord'], $data['economy_type'], $data['security_level']);
-        $stmt->execute();
-        return $stmt->insert_id;
+    public function getInfo() {
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'type' => $this->type,
+            'economyType' => $this->economyType,
+            'securityLevel' => $this->securityLevel
+        ];
     }
 
-    public static function getAll($conn) {
-        $result = $conn->query("SELECT * FROM star_systems");
+    public function getDetailedInfo() {
+        $info = $this->getInfo();
+        $info['planets'] = $this->getPlanets();
+        return $info;
+    }
+
+    public function getPlanets() {
+        $sql = "SELECT * FROM planets WHERE system_id = ?";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param("i", $this->id);
+        $stmt->execute();
+        $result = $stmt->get_result();
         return $result->fetch_all(MYSQLI_ASSOC);
+    }
+
+    public function distanceTo($otherSystem) {
+        $dx = $this->x - $otherSystem->x;
+        $dy = $this->y - $otherSystem->y;
+        $dz = $this->z - $otherSystem->z;
+        return sqrt($dx*$dx + $dy*$dy + $dz*$dz);
+    }
+
+    public function getCommodityPrice($commodityId) {
+        // Implement commodity price calculation based on economy type, etc.
+        // This is a placeholder implementation
+        return rand(10, 1000);
+    }
+
+    public function getAllCommodityPrices() {
+        // Implement fetching all commodity prices
+        // This is a placeholder implementation
+        return [
+            ['id' => 1, 'name' => 'Food', 'price' => $this->getCommodityPrice(1)],
+            ['id' => 2, 'name' => 'Minerals', 'price' => $this->getCommodityPrice(2)],
+            ['id' => 3, 'name' => 'Technology', 'price' => $this->getCommodityPrice(3)]
+        ];
     }
 }

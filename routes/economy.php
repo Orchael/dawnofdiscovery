@@ -1,19 +1,56 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../models/UserGameState.php';
+require_once __DIR__ . '/../models/User.php';
+require_once __DIR__ . '/../models/StarSystem.php';
 
-function trade($user_id) {
-    $conn = get_db_connection();
-    $game_state = UserGameState::getByUserId($conn, $user_id);
+function trade($userId, $commodityId, $quantity, $isBuying) {
+    global $conn;
     
-    $profit = rand(TRADE_PROFIT_MIN, TRADE_PROFIT_MAX);
-    $new_credits = $game_state['credits'] + $profit;
+    $user = new User($conn, $userId);
+    $currentShip = $user->getCurrentShip();
     
-    UserGameState::updateCredits($conn, $user_id, $new_credits);
+    if (!$currentShip) {
+        return ['success' => false, 'message' => 'No ship available for trading'];
+    }
     
+    $system = new StarSystem($conn, $currentShip['system_id']);
+    $price = $system->getCommodityPrice($commodityId);
+    
+    $totalCost = $price * $quantity;
+    
+    if ($isBuying) {
+        if ($user->getCredits() < $totalCost) {
+            return ['success' => false, 'message' => 'Not enough credits'];
+        }
+        if ($currentShip['cargo_capacity'] < $quantity) {
+            return ['success' => false, 'message' => 'Not enough cargo space'];
+        }
+        $user->adjustCredits(-$totalCost);
+        $user->adjustCargo($commodityId, $quantity);
+    } else {
+        if ($user->getCargoQuantity($commodityId) < $quantity) {
+            return ['success' => false, 'message' => 'Not enough commodity in cargo'];
+        }
+        $user->adjustCredits($totalCost);
+        $user->adjustCargo($commodityId, -$quantity);
+    }
+    
+    return ['success' => true, 'message' => 'Trade completed successfully'];
+}
+
+function getMarketPrices($userId) {
+    global $conn;
+    
+    $user = new User($conn, $userId);
+    $currentShip = $user->getCurrentShip();
+    
+    if (!$currentShip) {
+        return ['success' => false, 'message' => 'No ship available to check market'];
+    }
+    
+    $system = new StarSystem($conn, $currentShip['system_id']);
     return [
-        'message' => 'Trade completed successfully',
-        'profit' => $profit,
-        'new_credits' => $new_credits
+        'success' => true,
+        'prices' => $system->getAllCommodityPrices()
     ];
 }

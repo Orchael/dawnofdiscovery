@@ -1,33 +1,58 @@
 <?php
-session_start();
-require_once 'config/database.php';
-require_once 'routes/game.php';
-require_once 'routes/economy.php';
-require_once 'routes/exploration.php';
+class User {
+    private $conn;
+    private $id;
+    private $username;
+    private $credits;
 
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Not authenticated']);
-    exit();
-}
+    public function __construct($conn, $id) {
+        $this->conn = $conn;
+        $this->id = $id;
+        $this->loadData();
+    }
 
-$action = $_GET['action'] ?? '';
-$user_id = $_SESSION['user_id'];
+    private function loadData() {
+        $sql = "SELECT username, credits FROM users WHERE id = ?";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param("i", $this->id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $data = $result->fetch_assoc();
+        
+        $this->username = $data['username'];
+        $this->credits = $data['credits'];
+    }
 
-switch ($action) {
-    case 'get_game_state':
-        echo json_encode(get_game_state($user_id));
-        break;
-    case 'travel':
-        echo json_encode(travel($user_id, $_POST['destination']));
-        break;
-    case 'trade':
-        echo json_encode(trade($user_id));
-        break;
-    case 'explore':
-        echo json_encode(explore($user_id));
-        break;
-    default:
-        http_response_code(400);
-        echo json_encode(['error' => 'Invalid action']);
+    public function getCurrentShip() {
+        $sql = "SELECT * FROM ships WHERE user_id = ? LIMIT 1";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param("i", $this->id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        return $result->fetch_assoc();
+    }
+
+    public function getCredits() {
+        return $this->credits;
+    }
+
+    public function adjustCredits($amount) {
+        $this->credits += $amount;
+        $sql = "UPDATE users SET credits = ? WHERE id = ?";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param("ii", $this->credits, $this->id);
+        $stmt->execute();
+    }
+
+    public function getCargoQuantity($commodityId) {
+        // Implement fetching cargo quantity
+        // This is a placeholder implementation
+        return rand(0, 100);
+    }
+
+    public function adjustCargo($commodityId, $quantity) {
+        // Implement adjusting cargo
+        // This is a placeholder implementation
+        echo "Adjusted cargo: Commodity $commodityId by $quantity";
+    }
 }
